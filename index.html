@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="課題トラッカー">
+<title>課題トラッカー</title>
+<style>
+:root{--bg:#f5f6fa;--card:#fff;--tx:#1d2433;--sub:#6b7488;--ac:#4f6df5;--ac2:#e8ecff;--ok:#22a06b;--bd:#e1e5ee;--danger:#e5484d;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#12151c;--card:#1b2029;--tx:#eef1f7;--sub:#8f99ad;--ac:#7b90ff;--ac2:#262d44;--bd:#2b3240;--ok:#3ecf8e;--danger:#ff6b70}}
+:root[data-theme="dark"]{--bg:#12151c;--card:#1b2029;--tx:#eef1f7;--sub:#8f99ad;--ac:#7b90ff;--ac2:#262d44;--bd:#2b3240;--ok:#3ecf8e;--danger:#ff6b70}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif;line-height:1.5}
+main{max-width:540px;margin:0 auto;padding:14px}
+.layout{display:grid;grid-template-columns:1fr;gap:0 14px}
+.a-task{grid-area:task}.a-timer{grid-area:timer}.a-stats{grid-area:stats}
+.layout{grid-template-areas:"task" "timer" "stats"}
+.tabs button.run::after{content:" ●";color:var(--ok);font-size:.7em}
+/* iPad（縦横どちらも）: ページ数の右横にタイマー/ストップウォッチ */
+@media (min-width:700px){
+  main{max-width:1180px;padding:18px 22px}
+  .layout{grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-areas:"task timer" "stats timer";grid-template-rows:auto 1fr;align-items:start}
+  .a-timer{position:sticky;top:12px}
+  .big{font-size:4.4rem}
+  button,select{padding:14px 18px;font-size:1.02rem}
+  button.sm{padding:9px 13px;font-size:.9rem}
+  input{padding:12px;font-size:1.05rem}
+  .tabs button{padding:13px;font-size:1.05rem}
+  #tDisp,#sDisp{font-size:5.4rem}
+}
+header{display:flex;justify-content:space-between;align-items:center}
+h1{font-size:1.15rem;margin:6px 0}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:16px;padding:16px;margin-bottom:12px}
+h2{font-size:.9rem;color:var(--sub);margin:0 0 10px;font-weight:600}
+.big{font-size:3.6rem;font-weight:700;text-align:center;font-variant-numeric:tabular-nums;line-height:1.1}
+.big small{font-size:1rem;color:var(--sub);font-weight:500;margin-left:4px}
+.row{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;align-items:center;margin-top:10px}
+button,select{font:inherit;border:1px solid var(--bd);background:var(--ac2);color:var(--tx);border-radius:12px;padding:11px 14px;min-width:52px;cursor:pointer;font-weight:600}
+button:active{transform:scale(.96)}
+button.p{background:var(--ac);color:#fff;border-color:var(--ac)}
+button.d{color:var(--danger)}
+button.sm{padding:7px 10px;min-width:0;font-size:.85rem}
+input{font:inherit;color:var(--tx);background:var(--bg);border:1px solid var(--bd);border-radius:10px;padding:9px;width:84px;text-align:center}
+input.w{width:100%;text-align:left}
+select{width:100%;text-align:left}
+.bar{height:10px;background:var(--ac2);border-radius:99px;overflow:hidden;margin:12px 0 4px}
+.bar>i{display:block;height:100%;width:0;background:var(--ok);transition:width .3s}
+.meta{display:flex;justify-content:space-between;color:var(--sub);font-size:.82rem}
+.tabs{display:flex;gap:6px;margin-bottom:12px;background:var(--ac2);padding:4px;border-radius:12px}
+.tabs button{flex:1;border:0;background:transparent;padding:9px}
+.tabs button.on{background:var(--card);color:var(--ac)}
+label{color:var(--sub);font-size:.82rem}
+.hide{display:none}
+ol{padding:0;list-style:none;margin:8px 0 0;max-height:170px;overflow:auto}
+li{display:flex;justify-content:space-between;padding:5px 2px;border-bottom:1px solid var(--bd);font-variant-numeric:tabular-nums;font-size:.88rem}
+.st{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.st div{background:var(--bg);border-radius:12px;padding:10px;font-size:.78rem;color:var(--sub)}
+.st b{display:block;font-size:1.05rem;color:var(--tx)}
+.chart{display:flex;gap:6px;align-items:flex-end;height:90px;margin-top:6px}
+.chart div{flex:1;text-align:center;font-size:.7rem;color:var(--sub);display:flex;flex-direction:column;justify-content:flex-end;height:100%}
+.chart i{display:block;background:var(--ac);border-radius:6px 6px 0 0;min-height:2px}
+textarea{width:100%;height:80px;font:inherit;font-size:.75rem;background:var(--bg);color:var(--tx);border:1px solid var(--bd);border-radius:10px;padding:8px}
+details summary{cursor:pointer;font-weight:600;color:var(--sub)}
+.pill{display:inline-block;padding:2px 10px;border-radius:99px;background:var(--ac2);font-size:.8rem;color:var(--ac);text-align:center}
+.flash{animation:f .6s 4}@keyframes f{50%{color:var(--danger)}}
+.pop{position:fixed;left:0;right:0;top:35%;text-align:center;font-size:2rem;font-weight:700;pointer-events:none;animation:u 2.2s forwards}
+@keyframes u{to{opacity:0;transform:translateY(-40px)}}
+</style>
+</head>
+<body>
+<main>
+<header><h1>📚 課題トラッカー</h1><div><span class="pill" id="todayT">今日 0分</span> <button class="sm" id="theme">🌓</button></div></header>
+
+<div class="layout">
+
+<section class="card a-task">
+  <select id="sel"></select>
+  <div class="row" style="margin-top:12px"><span class="pill" id="due"></span></div>
+  <div class="big"><span id="rem">0</span><small>/ <span id="tot">0</span> ページ</small></div>
+  <div class="bar"><i id="bar"></i></div>
+  <div class="meta"><span id="pct"></span><span id="done"></span></div>
+  <div class="row">
+    <button class="d" data-d="-10">−10</button><button class="d" data-d="-5">−5</button><button class="d" data-d="-1">−1</button>
+    <button class="p" data-d="1">＋1</button><button class="p" data-d="5">＋5</button><button class="p" data-d="10">＋10</button>
+  </div>
+  <div class="row">
+    <button class="d" id="sm">−</button><input id="step" type="number" min="1" value="1" inputmode="numeric"><button class="p" id="sp">＋</button>
+    <button id="undo">↩ 元に戻す</button>
+  </div>
+  <div class="row"><label>残りを直接入力</label><input id="remIn" type="number" min="0" inputmode="numeric"><button id="setRem">反映</button></div>
+  <details style="margin-top:12px"><summary>課題の設定・追加・削除</summary>
+    <div class="row"><label style="width:70px">課題名</label><input class="w" id="nm" style="flex:1"></div>
+    <div class="row"><label style="width:70px">全ページ</label><input class="w" id="totIn" type="number" min="0" inputmode="numeric" style="flex:1"></div>
+    <div class="row"><label style="width:70px">期限</label><input class="w" id="dueIn" type="date" style="flex:1"></div>
+    <div class="row"><button id="add" class="p">＋ 新しい課題</button><button id="del" class="d">削除</button></div>
+  </details>
+</section>
+
+<section class="card a-stats">
+  <h2>ペースと予測</h2>
+  <div class="st" id="stats"></div>
+  <h2 style="margin-top:14px">直近7日の勉強時間（分）</h2>
+  <div class="chart" id="chart"></div>
+</section>
+
+<div class="a-timer">
+<div class="tabs"><button id="tT" class="on">⏳ タイマー</button><button id="tS">⏱ ストップウォッチ</button></div>
+
+<section class="card" id="timer">
+  <h2>タイマー <span class="pill" id="tPhase">集中</span></h2>
+  <div class="big" id="tDisp">25:00</div>
+  <div class="row"><input id="tMin" type="number" min="0" value="25" inputmode="numeric"><label>分</label><input id="tSec" type="number" min="0" max="59" value="0" inputmode="numeric"><label>秒</label></div>
+  <div class="row"><button data-p="5">5分</button><button data-p="15">15分</button><button data-p="25">25分</button><button data-p="45">45分</button></div>
+  <div class="row"><label><input type="checkbox" id="pomo" style="width:auto"> ポモドーロ（休憩を自動で挟む）</label><input id="bMin" type="number" min="1" value="5" style="width:60px"><label>分休憩</label></div>
+  <div class="row"><button class="p" id="tGo">スタート</button><button id="tReset">リセット</button></div>
+</section>
+
+<section class="card hide" id="sw">
+  <h2>ストップウォッチ</h2>
+  <div class="big" id="sDisp">00:00.00</div>
+  <div class="row"><button class="p" id="sGo">スタート</button><button id="sLap">ラップ</button><button id="sReset">リセット</button></div>
+  <ol id="laps"></ol>
+</section>
+</div>
+
+</div>
+
+<section class="card">
+  <h2>設定・バックアップ</h2>
+  <div class="row" style="justify-content:flex-start"><label><input type="checkbox" id="snd" style="width:auto"> 終了時に音・振動・通知</label></div>
+  <div class="row"><button id="exp">データを書き出す</button><button id="imp">読み込む</button></div>
+  <textarea id="ta" placeholder="書き出したデータをここに貼り付けて「読み込む」"></textarea>
+  <div class="row"><button class="d sm" id="wipe">全データ削除</button></div>
+</section>
+</main>
+
+<script>
+const $=id=>document.getElementById(id),pad=n=>String(n).padStart(2,'0');
+const dk=d=>{d=d||new Date();return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())};
+const mk=n=>({id:Date.now()+Math.random(),name:n,tot:0,rem:0,due:'',spent:0});
+let D={tasks:[],cur:null,daily:{},set:{sound:true,theme:'',step:1}},UN=[];
+try{const v=JSON.parse(localStorage.getItem('kadai2')||'null');
+ if(v&&v.tasks)D=Object.assign(D,v);
+ else{const o=JSON.parse(localStorage.getItem('kadai')||'null');if(o){const t=mk('課題1');t.tot=o.tot;t.rem=o.rem;D.tasks.push(t)}}}catch(e){}
+if(!D.tasks.length)D.tasks.push(mk('課題1'));
+const cur=()=>D.tasks.find(t=>t.id===D.cur)||(D.cur=D.tasks[0].id,D.tasks[0]);
+const day=k=>D.daily[k]||(D.daily[k]={ms:0,pages:0});
+const save=()=>{try{localStorage.setItem('kadai2',JSON.stringify(D))}catch(e){}};
+const mm=ms=>Math.round(ms/60000);
+const fmtH=ms=>{const m=mm(ms);return m>=60?Math.floor(m/60)+'時間'+(m%60)+'分':m+'分'};
+
+function setRem(v,rec=true){
+  const t=cur();v=Math.max(0,Math.round(v));if(isNaN(v)||v===t.rem)return;
+  const was=t.rem;const delta=was-v;
+  t.rem=v;if(t.rem>t.tot)t.tot=t.rem;
+  day(dk()).pages+=delta;if(rec)UN.push({id:t.id,delta});
+  if(v===0&&was>0)celebrate();
+  render();
+}
+function celebrate(){const p=document.createElement('div');p.className='pop';p.textContent='🎉 課題完了！お疲れさま 🎉';document.body.appendChild(p);setTimeout(()=>p.remove(),2300)}
+document.querySelectorAll('[data-d]').forEach(b=>b.onclick=()=>setRem(cur().rem+ +b.dataset.d));
+const stp=()=>Math.max(1,parseInt($('step').value)||1);
+$('sm').onclick=()=>setRem(cur().rem-stp());$('sp').onclick=()=>setRem(cur().rem+stp());
+$('step').oninput=()=>{D.set.step=stp();save()};
+$('setRem').onclick=()=>{const v=parseInt($('remIn').value);if(v>=0){setRem(v);$('remIn').value=''}};
+$('undo').onclick=()=>{const u=UN.pop();if(!u)return;const t=D.tasks.find(x=>x.id===u.id);if(!t)return;t.rem+=u.delta;day(dk()).pages-=u.delta;render()};
+document.addEventListener('keydown',e=>{if(/INPUT|TEXTAREA|SELECT/.test(e.target.tagName))return;if(e.key==='ArrowUp')setRem(cur().rem+stp());if(e.key==='ArrowDown')setRem(cur().rem-stp())});
+
+$('sel').onchange=()=>{D.cur=+$('sel').value;render(true)};
+$('add').onclick=()=>{const t=mk('新しい課題');D.tasks.push(t);D.cur=t.id;render(true);$('nm').focus();$('nm').select()};
+let delArm=0;
+$('del').onclick=()=>{
+  if(!delArm){delArm=1;$('del').textContent='本当に削除？';setTimeout(()=>{delArm=0;$('del').textContent='削除'},3000);return}
+  delArm=0;$('del').textContent='削除';
+  D.tasks=D.tasks.filter(t=>t.id!==cur().id);if(!D.tasks.length)D.tasks.push(mk('課題1'));D.cur=D.tasks[0].id;render(true)};
+$('nm').oninput=()=>{cur().name=$('nm').value||'無題';fillSel();save()};
+$('totIn').oninput=()=>{const t=cur(),v=Math.max(0,parseInt($('totIn').value)||0);const d=v-t.tot;t.tot=v;t.rem=Math.max(0,Math.min(v,t.rem+(d>0?d:0)));if(t.rem>v)t.rem=v;render()};
+$('dueIn').oninput=()=>{cur().due=$('dueIn').value;render()};
+
+function fillSel(){$('sel').innerHTML=D.tasks.map(t=>`<option value="${t.id}" ${t.id===cur().id?'selected':''}>${t.name.replace(/</g,'&lt;')}（残り${t.rem}p）</option>`).join('')}
+function render(fields){
+  const t=cur();fillSel();
+  if(fields){$('nm').value=t.name;$('totIn').value=t.tot||'';$('dueIn').value=t.due||''}
+  $('rem').textContent=t.rem;$('tot').textContent=t.tot;
+  const done=t.tot-t.rem,p=t.tot?Math.round(done/t.tot*100):0;
+  $('bar').style.width=p+'%';$('pct').textContent=p+'% 完了';$('done').textContent=done+'ページ済み';
+  // due
+  let days=null;
+  if(t.due){const a=new Date(t.due+'T00:00:00'),n=new Date();n.setHours(0,0,0,0);days=Math.round((a-n)/864e5)}
+  $('due').textContent=t.due?(days<0?'期限超過 '+(-days)+'日':days===0?'今日が期限':'期限まで あと'+days+'日'):'期限なし';
+  // stats
+  let last7=[],pg=0,ms=0;
+  for(let i=0;i<7;i++){const d=new Date();d.setDate(d.getDate()-i);const r=D.daily[dk(d)]||{ms:0,pages:0};last7.push({d,ms:r.ms});pg+=r.pages;ms+=r.ms}
+  const avg=pg/7,td=day(dk());
+  const need=t.due&&t.rem>0?Math.ceil(t.rem/Math.max(1,days<=0?1:days)):null;
+  let eta='—';
+  if(t.rem===0)eta='完了済み';else if(avg>0){const e=new Date();e.setDate(e.getDate()+Math.ceil(t.rem/avg));eta=(e.getMonth()+1)+'/'+e.getDate()}
+  const ok=need!==null&&avg>0?(avg>=need?'（間に合うペース）':'（ペース不足）'):'';
+  $('stats').innerHTML=`<div>今日の進捗<b>${td.pages}ページ</b></div><div>今日の勉強<b>${fmtH(td.ms)}</b></div>
+   <div>期限までの目安<b>${need===null?'期限未設定':need+'ページ/日'}</b></div><div>直近7日の平均<b>${avg.toFixed(1)}ページ/日</b></div>
+   <div>完了予定日${ok}<b>${eta}</b></div><div>この課題の累計時間<b>${fmtH(t.spent)}</b></div>
+   <div>全課題の残り合計<b>${D.tasks.reduce((s,x)=>s+x.rem,0)}ページ</b></div><div>1ページあたり<b>${pg>0&&ms>0?(ms/60000/pg).toFixed(1)+'分':'—'}</b></div>`;
+  const mx=Math.max(1,...last7.map(x=>x.ms));
+  $('chart').innerHTML=last7.reverse().map(x=>`<div><span>${mm(x.ms)}</span><i style="height:${x.ms/mx*60}px"></i>${'日月火水木金土'[x.d.getDay()]}</div>`).join('');
+  $('todayT').textContent='今日 '+fmtH(td.ms);
+  save();
+}
+function addTime(ms){if(ms<1000)return;day(dk()).ms+=ms;cur().spent+=ms;render()}
+
+// feedback
+function beep(){if(!D.set.sound)return;try{const c=new (window.AudioContext||window.webkitAudioContext)();[0,.3,.6].forEach(t=>{const o=c.createOscillator(),g=c.createGain();o.connect(g);g.connect(c.destination);o.frequency.value=880;g.gain.value=.2;o.start(c.currentTime+t);o.stop(c.currentTime+t+.18)})}catch(e){}
+ try{navigator.vibrate&&navigator.vibrate([200,100,200])}catch(e){}}
+function notify(m){if(!D.set.sound)return;try{if(Notification.permission==='granted')new Notification(m)}catch(e){}}
+let wl=null;
+async function lock(){try{wl=await navigator.wakeLock.request('screen')}catch(e){}}
+function unlock(){try{wl&&wl.release();wl=null}catch(e){}}
+function syncLock(){if(T.run||sId){if(!wl)lock()}else unlock()}
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"&&(T.run||sId)){wl=null;lock()}});
+
+// tabs（切り替えても裏で動き続ける）
+$('tT').onclick=()=>{$('timer').classList.remove('hide');$('sw').classList.add('hide');$('tT').classList.add('on');$('tS').classList.remove('on')};
+$('tS').onclick=()=>{$('sw').classList.remove('hide');$('timer').classList.add('hide');$('tS').classList.add('on');$('tT').classList.remove('on')};
+setInterval(()=>{$('tT').classList.toggle('run',!!T.run);$('tS').classList.toggle('run',!!sId)},400);
+
+// timer
+const T={run:false,end:0,left:1500000,phase:'work',start:0,id:null};
+const fmtT=ms=>{const s=Math.ceil(ms/1000);return pad(Math.floor(s/60))+':'+pad(s%60)};
+const workMs=()=>((+$('tMin').value||0)*60+(+$('tSec').value||0))*1000;
+const setLeft=ms=>{T.left=ms;$('tDisp').textContent=fmtT(ms)};
+function tHalt(){if(!T.run)return;clearInterval(T.id);T.run=false;syncLock();if(T.phase==='work')addTime(Date.now()-T.start)}
+function tStart(){
+  if(T.left<=0)setLeft(T.phase==='work'?workMs():(+$('bMin').value||5)*60000);
+  if(T.left<=0)return;
+  try{if(D.set.sound&&Notification.permission==='default')Notification.requestPermission()}catch(e){}
+  T.start=Date.now();T.end=T.start+T.left;T.run=true;T.id=setInterval(tTick,200);syncLock();$('tGo').textContent='一時停止';$('tDisp').classList.remove('flash');tTick();
+}
+function tTick(){
+  const l=T.end-Date.now();
+  if(l>0){$('tDisp').textContent=fmtT(l);return}
+  const was=T.phase;tHalt();setLeft(0);beep();
+  if($('pomo').checked){
+    T.phase=was==='work'?'break':'work';$('tPhase').textContent=T.phase==='work'?'集中':'休憩';
+    notify(T.phase==='break'?'休憩の時間です':'集中タイム開始');
+    setLeft(T.phase==='work'?workMs():(+$('bMin').value||5)*60000);tStart();
+  }else{notify('時間です！');$('tDisp').classList.add('flash');$('tGo').textContent='スタート'}
+}
+$('tGo').onclick=()=>{if(T.run){T.left=T.end-Date.now();tHalt();$('tGo').textContent='再開'}else tStart()};
+$('tReset').onclick=()=>{tHalt();T.phase='work';$('tPhase').textContent='集中';$('tDisp').classList.remove('flash');$('tGo').textContent='スタート';setLeft(workMs())};
+['tMin','tSec'].forEach(i=>$(i).oninput=()=>{if(!T.run&&T.phase==='work')setLeft(workMs())});
+document.querySelectorAll('[data-p]').forEach(b=>b.onclick=()=>{if(T.run)return;$('tMin').value=b.dataset.p;$('tSec').value=0;setLeft(workMs())});
+
+// stopwatch
+let sBase=0,sStart=0,sId=null,lapPrev=0,lapN=0;
+const fmtS=ms=>pad(Math.floor(ms/60000))+':'+pad(Math.floor(ms/1000)%60)+'.'+pad(Math.floor(ms/10)%100);
+const sNow=()=>sBase+(sId?Date.now()-sStart:0);
+$('sGo').onclick=()=>{
+  if(sId){const seg=Date.now()-sStart;sBase+=seg;clearInterval(sId);sId=null;syncLock();$('sGo').textContent='再開';$('sDisp').textContent=fmtS(sBase);addTime(seg);return}
+  sStart=Date.now();sId=setInterval(()=>$('sDisp').textContent=fmtS(sNow()),30);syncLock();$('sGo').textContent='ストップ'};
+$('sLap').onclick=()=>{const n=sNow();if(!n)return;lapN++;const li=document.createElement('li');li.innerHTML=`<span>ラップ${lapN}</span><span>+${fmtS(n-lapPrev)}</span><span>${fmtS(n)}</span>`;$('laps').prepend(li);lapPrev=n};
+$('sReset').onclick=()=>{if(sId)addTime(Date.now()-sStart);clearInterval(sId);sId=null;syncLock();sBase=lapPrev=lapN=0;$('laps').innerHTML='';$('sDisp').textContent='00:00.00';$('sGo').textContent='スタート'};
+
+// settings
+$('snd').checked=D.set.sound!==false;$('snd').onchange=()=>{D.set.sound=$('snd').checked;save()};
+$('step').value=D.set.step||1;
+const applyTheme=()=>{if(D.set.theme)document.documentElement.dataset.theme=D.set.theme;else delete document.documentElement.dataset.theme};
+$('theme').onclick=()=>{const dark=document.documentElement.dataset.theme?document.documentElement.dataset.theme==='dark':matchMedia('(prefers-color-scheme:dark)').matches;D.set.theme=dark?'light':'dark';applyTheme();save()};
+$('exp').onclick=async()=>{$('ta').value=JSON.stringify(D);$('ta').select();try{await navigator.clipboard.writeText($('ta').value)}catch(e){}};
+$('imp').onclick=()=>{try{const v=JSON.parse($('ta').value);if(!v.tasks||!v.tasks.length)throw 0;D=Object.assign(D,v);D.cur=D.tasks[0].id;render(true);$('ta').value='読み込みました'}catch(e){$('ta').value='読み込めませんでした。書き出したデータをそのまま貼り付けてください。'}};
+let wArm=0;
+$('wipe').onclick=()=>{if(!wArm){wArm=1;$('wipe').textContent='もう一度押すと全削除';setTimeout(()=>{wArm=0;$('wipe').textContent='全データ削除'},3000);return}
+ D={tasks:[mk('課題1')],cur:null,daily:{},set:D.set};UN=[];render(true);wArm=0;$('wipe').textContent='全データ削除'};
+
+applyTheme();render(true);setLeft(workMs());
+</script>
+</body>
+</html>
